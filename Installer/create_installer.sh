@@ -7,9 +7,9 @@ set -euo pipefail
 # it may need execute permissions first by running this command:
 #   chmod +x create_installer.sh
 
-driverName="BlackHole"
-devTeamID="Q5C99V536K" # ⚠️ Replace this with your own developer team ID
-notarize=true # To skip notarization, set this to false
+driverName="Saraswati"
+devTeamID="" # ⚠️ Replace this with your own developer team ID
+notarize=false # To skip notarization, set this to false
 notarizeProfile="notarize" # ⚠️ Replace this with your own notarytool keychain profile name
 
 ############################################################################
@@ -31,7 +31,8 @@ if [ -z "$version" ]; then
     exit 1
 fi
 
-for channels in 2 16 64 128 256; do
+# Channels can be 2, 16, 64, 128, or 256
+for channels in 2 16; do
     # Env
     ch=$channels"ch"
     driverVartiantName=$driverName$ch
@@ -46,7 +47,9 @@ for channels in 2 16 64 128 256; do
       GCC_PREPROCESSOR_DEFINITIONS='$GCC_PREPROCESSOR_DEFINITIONS 
       kNumber_Of_Channels='$channels' 
       kPlugIn_BundleID=\"'$bundleID'\" 
-      kDriver_Name=\"'$driverName'\"'
+      kDriver_Name=\"'$driverName'\"
+      kDevice_Name=\"'$driverName'\"
+      kDevice_IsHidden=false'
     
     # Generate a new UUID
     uuid=$(uuidgen)
@@ -59,23 +62,30 @@ for channels in 2 16 64 128 256; do
     rm -r build
     
     # Sign
-    codesign \
-      --force \
-      --deep \
-      --options runtime \
-      --sign $devTeamID \
-      Installer/root/$driverBundleName
+#    codesign \
+#      --force \
+#      --deep \
+#      --options runtime \
+#      --sign $devTeamID \
+#      Installer/root/$driverBundleName
     
     # Create package with pkgbuild
     chmod 755 Installer/Scripts/preinstall
     chmod 755 Installer/Scripts/postinstall
     
+#    pkgbuild \
+#      --sign $devTeamID \
+#      --root Installer/root \
+#      --scripts Installer/Scripts \
+#      --install-location /Library/Audio/Plug-Ins/HAL \
+#      "Installer/$driverName.pkg"
+      
     pkgbuild \
-      --sign $devTeamID \
       --root Installer/root \
       --scripts Installer/Scripts \
       --install-location /Library/Audio/Plug-Ins/HAL \
       "Installer/$driverName.pkg"
+      
     rm -r Installer/root
     
     # Create installer with productbuild
@@ -106,11 +116,17 @@ for channels in 2 16 64 128 256; do
     
     # Build
     installerPkgName="$driverVartiantName-$version.pkg"
+#    productbuild \
+#      --sign $devTeamID \
+#      --distribution distribution.xml \
+#      --resources . \
+#      --package-path $driverName.pkg $installerPkgName
+      
     productbuild \
-      --sign $devTeamID \
       --distribution distribution.xml \
       --resources . \
       --package-path $driverName.pkg $installerPkgName
+      
     rm distribution.xml
     rm -f $driverName.pkg
     
